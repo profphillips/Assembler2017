@@ -23,12 +23,16 @@
  */
 package util;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -48,10 +52,22 @@ public class FileUtil {
         try {
             list = Files.readAllLines(path, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            System.out.println("Error with " + e.getMessage());
+            Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, null, e);
         }
         return list;
     }
-    
-    //public static void writeAll(List<Line>)
+
+    /**
+     * Write a string to the given filename.
+     *
+     * @param s
+     * @param filename
+     */
+    public static void writeString2File(String s, String filename) {
+        try (PrintWriter out = new PrintWriter(new File(filename))) {
+            out.print(s);
+        } catch (IOException ex) {
+            Logger.getLogger(FileUtil.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 }

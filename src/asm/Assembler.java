@@ -28,9 +28,8 @@ import java.util.Scanner;
 import util.FileUtil;
 
 /**
- * This class is the starting point when running the MUCPU 2017 Assembler.
- * 
- * TODO: add code to save listing and machine code files
+ * This class is the starting point when running the MUCPU 2017 Assembler. It
+ * presents a simple console menu to choose from.
  *
  * @version 20170327
  * @author John Phillips
@@ -50,6 +49,7 @@ public class Assembler {
             System.out.println("2 = Load and Assemble");
             System.out.println("3 = View Listing");
             System.out.println("4 = View Machine Code");
+            System.out.println("5 = Load, Assemble, and Save (alst.txt and amc.txt)");
             System.out.print("Enter choice: ");
             choice = sc.nextLine();
 
@@ -62,18 +62,32 @@ public class Assembler {
                     listing = new Listing(source);
                     System.out.println("Assembly complete.");
                 } else {
-                    System.out.println("Choose option 1 to set the filename...");
+                    System.out.println("Error... choose option 1 to set the filename...\n");
                 }
             } else if (choice.equals("3")) {
                 if (listing != null) {
-                    System.out.println("\n\nLISTING OF " + filename + "\n");
+                    System.out.println("\nListing for " + filename + "\n");
                     System.out.println(listing);
                 }
             } else if (choice.equals("4")) {
                 if (listing != null) {
-                    System.out.println("\n\nMACHINE CODE\n");
+                    System.out.println("\nMachine Code for " + filename + "\n");
                     System.out.println(listing.getMachineCodeAsString());
                 }
+            } else if (choice.equals("5")) {
+                if (!filename.equals("")) {
+                    source = FileUtil.readAllF2L(filename);
+                    listing = new Listing(source);                    
+                    if (listing != null) {
+                        FileUtil.writeString2File(listing.toString(), "alst.txt");
+                        System.out.println("\nListing has been written to alst.txt.");                        
+                        FileUtil.writeString2File(listing.getMachineCodeAsString(), "amc.txt");
+                        System.out.println("Machine code has been written to amc.txt.");
+                    }
+                } else {
+                    System.out.println("Error... choose option 1 to set the filename...\n");
+                }
+
             }
         }
     }

@@ -29,7 +29,10 @@ import util.FileUtil;
 
 /**
  * This class is the starting point when running the MUCPU 2017 Assembler.
+ * 
+ * TODO: add code to save listing and machine code files
  *
+ * @version 20170327
  * @author John Phillips
  */
 public class Assembler {

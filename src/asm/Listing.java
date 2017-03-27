@@ -29,38 +29,62 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Creates a full listing from the given list of source code. In addition, it
+ * creates a separate list of machine code that can be used by the MUCPU 2017
+ * Simulator.
  *
+ * @version 20170327
  * @author John Phillips
  */
 public class Listing {
 
-    List<Line> listing;
-    Map<String, Integer> labelMap;
-    
-    public Listing(List<String> source){
+    List<Line> listing;             // list of parsed lines of code
+    Map<String, Integer> labelMap;  // list of labels and their addresses
+
+    /**
+     * Constructor takes a source list and then with the first pass parses the
+     * source code looking up the opcodes and with the second pass fills in the
+     * operand label addresses.
+     *
+     * @param source
+     */
+    public Listing(List<String> source) {
         listing = new ArrayList();
-        int pc = 0;
-
         labelMap = new HashMap();
+        int programCounter = 0;     // program counter starts at address 0
 
+        // first pass to step through each line of source code
         for (String s : source) {
-            Line line = new Line(s.toUpperCase());
+
+            // line will contain the parsed source code
+            Line line = new Line(s);
             listing.add(line);
 
+            // do the following steps if this line is not a comment
             if (!line.isComment()) {
-                line.setProgramCounter(int2Hex(pc));
+
+                // set the program counter as a 2 digit hex value
+                line.setProgramCounter(int2Hex(programCounter));
+
+                // if we have a label declaration then add it to the map
+                // with the current value of the program counter
                 if (!line.getLabel().equals("")) {
-                    labelMap.put(line.getLabel(), pc);
+                    labelMap.put(line.getLabel(), programCounter);
                 }
+
+                // if this is a data byte then increment pc by 1 otherwise by 2
                 if (line.getCommand().equals("DB")) {
-                    pc++;
+                    programCounter++;
                 } else {
-                    pc += 2;
+                    programCounter += 2;
                 }
             }
         }
 
-        // fixup labels
+        // This is the second pass. We step through each line from the parsed 
+        // code list and look up the operand labels in the labelMap. 
+        // These address values are converted to hex and stored in each line's 
+        // operandHex field.
         for (Line line : listing) {
             if (!line.isComment()) {
                 String op = line.getOperand();
@@ -70,33 +94,21 @@ public class Listing {
                     } else if (labelMap.containsKey(op)) {
                         line.setOperandHex(int2Hex(labelMap.get(op)));
                     } else {
-                        System.out.println("OPERAND FORMAT OR SPELLING ERROR: " + line);
+                        line.setErrors(line.getErrors() + "OPERAND FORMAT OR SPELLING ERROR (PASS 2), ");
                     }
                 } else {
-                    System.out.println("OPERAND NOT FOUND ERROR: " + line);
+                    line.setErrors(line.getErrors() + "OPERAND NOT FOUND ERROR(PASS 2), ");
                 }
             }
         }
     }
 
-    public String int2Hex(int i) {
+    public static String int2Hex(int i) {
         String myHex = Integer.toHexString(i).toUpperCase();
         if (myHex.length() == 1) {
             myHex = "0" + myHex;
         }
         return myHex;
-    }
-
-    public List<Line> getListingAsList() {
-        return null;
-    }
-
-    public String getListingAsString() {
-        return this.toString();
-    }
-
-    public List<String> getMachineCodeAsList() {
-        return null;
     }
 
     public String getMachineCodeAsString() {
@@ -121,25 +133,30 @@ public class Listing {
         return sb.toString();
     }
 
+    // Short test program.
     public static void main(String[] args) {
-        
         List<String> source = new ArrayList();
-
         source.add("; this is a comment.");
         source.add("LOOP1: LOD NUM1");
         source.add("       Add num2");
         source.add("LOOP2: JMP 00");
-//        source.add("LAST:");
+        source.add("LAST:"); // this is an error as labels have to be part of a full instruction.
         source.add("       HLT 80");
         source.add("NUM1:  DB 5A");
         source.add("NUM2:  DB ff");
         source.add("NUM3:  DB 78");
-        Listing myListing = new Listing(source);
-        System.out.println(myListing);
-        System.out.println(myListing.getMachineCodeAsString());
-//        myListing.labelMap.forEach((key, value) -> {
-//            System.out.println("Key: " + key + " Value: " + value);
-//        });
 
+        Listing myListing = new Listing(source);
+
+        System.out.println("Full code listing:");
+        System.out.println(myListing);
+
+        System.out.println("Machine code listing:");
+        System.out.println(myListing.getMachineCodeAsString());
+
+        System.out.println("Label Map listing:");
+        myListing.labelMap.forEach((key, value) -> {
+            System.out.println("Key: " + key + " Value: " + value);
+        });
     }
 }

@@ -32,8 +32,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Each line of MUCPU 2017 assembly language code must follow the following
- * rules:
+ * Objects from this class hold a single line of an assembly language listing.
+ * Given that this is a very simple assembler, each line of MUCPU 2017 assembly
+ * language source code must follow the following rules:
  *
  * 1. No blank lines allowed.
  *
@@ -58,37 +59,57 @@ import java.util.stream.Stream;
  * 5. All numeric values are in hexadecimal and consist of exactly 2 characters.
  * For example, zero would be 00.
  *
+ * @version 20170327
  * @author John Phillips
  */
 public class Line {
 
+    // Regular expression pattern to parse an instrution as follows:
+    //   \\s* skip zero or more white space characters
+    //   ((\\w+):)? captures an optional label declaration
+    //   \\s* skip zero or more white space characters
+    //   (\\w+) capture the command
+    //   \\s+ skip one or more white space characters
+    //   (\\w+) captures the operand
     private final static Pattern STATEMENT_PATTERN
-            = Pattern.compile("\\s*?((\\w+):)?\\s*(\\w+)\\s+(\\w+)",
+            = Pattern.compile("\\s*((\\w+):)?\\s*(\\w+)\\s+(\\w+)",
                     Pattern.CASE_INSENSITIVE);
 
-    private String source;
-    private String programCounter;
-    private String label;
-    private String command;
-    private String opcodeHex;
-    private String operand;
-    private String operandHex;
-    private boolean comment;
+    private String source;          // uppercase of original source line
+    private String programCounter;  // pc hex value for this line
+    private String label;           // optional label declaration
+    private String command;         // command mneumonic
+    private String opcodeHex;       // line fills in the corresponding opcode
+    private String operand;         // operand may be a label or hex value
+    private String operandHex;      // Listing.java converts labels to hex
+    private String errors;           // Line's errors messages are kept here.
+    private boolean comment;        // True if this line is a comment
 
+    /**
+     * Constructor receives a source code line and parses it.
+     *
+     * @param source
+     */
     public Line(String source) {
-        this.source = source;
+        this.source = source.toUpperCase();
         programCounter = "";
         label = "";
         command = "";
         opcodeHex = "";
         operand = "";
         operandHex = "";
+        errors = "";
         comment = false;
         parse();
     }
 
-    // Map to convert commands into opcodes; based on map code from
-    // http://minborgsjavapot.blogspot.com/2014/12/java-8-initializing-maps-in-smartest-way.html
+    /**
+     * Map to convert commands into opcodes; based on map code from
+     * http://minborgsjavapot.blogspot.com/2014/12/java-8-initializing-maps-in-smartest-way.html
+     *
+     * @return
+     */
+    // 
     protected static Map<String, String> commandMap() {
         return Collections.unmodifiableMap(Stream.of(
                 new SimpleEntry<>("LOD", "01"),
@@ -103,7 +124,13 @@ public class Line {
                 .collect(Collectors.toMap((e) -> e.getKey(), (e) -> e.getValue())));
     }
 
-    private void parse() {
+    /**
+     * Takes the source string and extracts whether it is a comment and if not
+     * it extracts the other parts of the statement including an optional label,
+     * the command, and the operand. The command is looked up using a Map data
+     * structure allowing the opcodeHex field to be filled in.
+     */
+    public final void parse() {
         if (source.startsWith(";")) {
             comment = true;
         } else {
@@ -117,33 +144,39 @@ public class Line {
                     if (commandMap().containsKey(command)) {
                         opcodeHex = commandMap().get(command);
                     } else {
-                        System.out.println("COMMAND NOT FOUND ERROR: " + source);
+                        errors += "COMMAND NOT FOUND ERROR, ";
                     }
                 } else {
-                    System.out.println("MISSING COMMAND ERROR: " + source);
+                    errors += "MISSING COMMAND ERROR, ";
                 }
                 if (m.group(4) != null) {
                     operand = m.group(4);
                 } else {
-                    System.out.println("MISSING OPERAND ERROR: " + source);
+                    errors += "MISSING OPERAND ERROR, ";
                 }
             } else {
-                System.out.println("INVALID LINE ERROR: " + source);
+                errors += "INVALID LINE ERROR, ";
             }
         }
     }
 
-    public static void main(String[] args) {
-        Line l1 = new Line("; this is a comment.");
-        System.out.println(l1);
-        Line l2 = new Line(" LOOP1: LOD 20");
-        System.out.println(l2);
-        Line l3 = new Line("  STO 30");
-        System.out.println(l3);
-        Line l4 = new Line(" DB 15");
-        System.out.println(l4);
+    /**
+     * Returns any errors along with a standard formatted line listing for this
+     * line.
+     *
+     * @return
+     */
+    @Override
+    public String toString() {
+        String s = "";
+        if (!errors.equals("")) {
+            s += errors + "\n";
+        }
+        s += String.format("%-2s %-2s %-2s %-1s\n", programCounter, opcodeHex, operandHex, source);
+        return s;
     }
 
+    // Netbeans generated getters and setters:
     public String getSource() {
         return source;
     }
@@ -200,6 +233,14 @@ public class Line {
         this.operandHex = operandHex;
     }
 
+    public String getErrors() {
+        return errors;
+    }
+
+    public void setErrors(String errors) {
+        this.errors = errors;
+    }
+
     public boolean isComment() {
         return comment;
     }
@@ -208,10 +249,16 @@ public class Line {
         this.comment = comment;
     }
 
-    @Override
-    public String toString() {
-//        return "Line{" + "source=" + source + ", programCounter=" + programCounter + ", label=" + label + ", operation=" + command + ", opcodeHex=" + opcodeHex + ", operand=" + operand + ", operandHex=" + operandHex + ", comment=" + comment + '}';
-        return String.format("%-2s %-2s %-2s %-1s\n", programCounter, opcodeHex, operandHex, source);
+    // Short test program
+    public static void main(String[] args) {
+        Line l1 = new Line("; this is a comment.");
+        System.out.println(l1);
+        Line l2 = new Line(" LOOP1: LOD 20");
+        System.out.println(l2);
+        Line l3 = new Line("  STO 30");
+        System.out.println(l3);
+        Line l4 = new Line(" DB 15");
+        System.out.println(l4);
     }
 
 }
